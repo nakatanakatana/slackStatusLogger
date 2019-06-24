@@ -1,8 +1,11 @@
+// slackUtil
 const props = PropertiesService.getScriptProperties();
 const slackToken = props.getProperty('SLACK_BOT_TOKEN');
 
 const slackAPIURL = 'https://slack.com/api/';
+type RequestMethods = 'get' | 'delete' | 'patch' | 'post' | 'put';
 
+// slackUser
 interface User {
   id: string;
   team_id: string;
@@ -50,8 +53,6 @@ interface UserListResponse {
   response_metadata: any;
 }
 
-type RequestMethods = 'get' | 'delete' | 'patch' | 'post' | 'put';
-
 function _getUsers(): User[] | null {
   const resourceURL = 'users.list';
 
@@ -72,14 +73,33 @@ function _getUsers(): User[] | null {
   return null;
 }
 
-function _userFilter(users: User[]): User[] {
-  return users
-    .filter(u => u.deleted == false)
-    .filter(u => u.is_bot == false)
-    .filter(u => u.is_restricted == false)
-    .filter(u => u.is_ultra_restricted == false);
+// slackNotify
+function _notify(channelName: string, text: string) {
+  const resourceURL = 'chat.postMessage';
+
+  const reqURL = slackAPIURL + resourceURL;
+  const method: RequestMethods = 'post';
+  const reqParams = {
+    method: method,
+    contentType: 'application/x-www-form-urlencoded',
+    payload: {
+      token: slackToken,
+      channel: channelName,
+      text: text
+    }
+  };
+  const result = UrlFetchApp.fetch(reqURL, reqParams);
+  Logger.log(result);
 }
 
+// spreadsheet
+function _getSheetData(): any[][] {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  return data;
+}
+
+// main
 const DataHeader = [
   'id',
   'icon',
@@ -106,6 +126,14 @@ function _userToRowArray(user: User) {
     user.profile.status_text,
     user.profile.image_512
   ];
+}
+
+function _userFilter(users: User[]): User[] {
+  return users
+    .filter(u => u.deleted == false)
+    .filter(u => u.is_bot == false)
+    .filter(u => u.is_restricted == false)
+    .filter(u => u.is_ultra_restricted == false);
 }
 
 function init() {
@@ -144,12 +172,6 @@ function _isUpdate(data: any[][], user: User): boolean {
   return latest && latest[updatedCol] !== user.updated;
 }
 
-function _getSheetData(): any[][] {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  const data = sheet.getDataRange().getValues();
-  return data;
-}
-
 function _headerNameToNum(
   headerRow: string[],
   headerName: string
@@ -163,24 +185,6 @@ function _headerNameToNum(
   return result !== null ? result : null;
 }
 
-function notify(channelName: string, text: string) {
-  const resourceURL = 'chat.postMessage';
-
-  const reqURL = slackAPIURL + resourceURL;
-  const method: RequestMethods = 'post';
-  const reqParams = {
-    method: method,
-    contentType: 'application/x-www-form-urlencoded',
-    payload: {
-      token: slackToken,
-      channel: channelName,
-      text: text
-    }
-  };
-  const result = UrlFetchApp.fetch(reqURL, reqParams);
-  Logger.log(result);
-}
-
 function testNotify() {
-  notify('bot-test', 'testMessage');
+  _notify('bot-test', 'testMessage');
 }
