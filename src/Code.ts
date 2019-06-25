@@ -148,6 +148,21 @@ const DataHeader = [
 
 function _userToRowArray(user: User) {
   const date = new Date(user.updated * 1000);
+  const genFormatDatetime = (d: Date) => {
+    const format = (i: number) => {
+      return ('0' + i).slice(-2);
+    };
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const date = d.getDate();
+    const hour = d.getHours();
+    const min = d.getMinutes();
+    const sec = d.getSeconds();
+    return `${year}/${format(month)}/${format(date)}:${format(hour)}:${format(
+      min
+    )}:${format(sec)}`;
+  };
+
   return [
     user.id,
     '=IMAGE(INDIRECT("RC[1]", false))',
@@ -156,8 +171,7 @@ function _userToRowArray(user: User) {
     user.name,
     user.updated,
     '=LEFT(INDIRECT("RC[1]", false), (SEARCH(":", INDIRECT("RC[1]", false))-1))',
-    `${date.getFullYear()}/${date.getMonth() +
-      1}/${date.getDate()}:${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`,
+    genFormatDatetime(date),
     user.profile.status_emoji,
     // emoji_text=>emoji_image
     '=IF(ISNA(VLOOKUP(SUBSTITUTE(INDIRECT("RC[-1]", false), ":", ""), emoji!A:C, 3, FALSE)),INDIRECT("RC[-1]", false), IF(ISURL(VLOOKUP(SUBSTITUTE(INDIRECT("RC[-1]", false), ":", ""), emoji!A:C, 3, FALSE)), IMAGE(VLOOKUP(SUBSTITUTE(INDIRECT("RC[-1]", false), ":", ""), emoji!A:C, 3, FALSE)), VLOOKUP(SUBSTITUTE(INDIRECT("RC[-1]", false), ":", ""), emoji!A:C, 3, FALSE)))',
@@ -214,9 +228,10 @@ function _initEmoji(sheet: GoogleAppsScript.Spreadsheet.Spreadsheet) {
   const emoji = _getEmojis();
   if (emoji) {
     const emojiSheet = sheet.getSheetByName(emojiSheetname);
-    for (const emojiRow of _emojiToSheetData(emoji)) {
-      emojiSheet.appendRow(emojiRow);
-    }
+    const emojiData = _emojiToSheetData(emoji);
+    emojiSheet
+      .getRange(1, 1, emojiData.length, emojiData[0].length)
+      .setValues(_emojiToSheetData(emoji));
   }
 }
 
