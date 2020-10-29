@@ -264,7 +264,7 @@ function _isUpdate(data: any[][], user: User): boolean {
   const idCol = _headerNameToNum(data[0], 'id');
   const updatedCol = _headerNameToNum(data[0], 'updated');
   const userRows = data.filter(row => row[idCol] === user.id);
-  if (!userRows) {
+  if (userRows.length === 0) {
     return true;
   }
   const latest = userRows[userRows.length - 1];
